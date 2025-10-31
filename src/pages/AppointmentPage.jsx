@@ -1,14 +1,15 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { api } from '../api';
 
-const services = [
-  { name: 'Cabelo', price: 40 },
-  { name: 'Barba', price: 20 },
-  { name: 'Cabelo + Barba', price: 55 },
-  { name: 'Sobrancelha', price: 15 },
-  { name: 'Cabelo + Sobrancelha', price: 50 },
-  { name: 'Barba + Sobrancelha', price: 30 },
-  { name: 'Barba + Sobrancelha + Cabelo', price: 65 },
+const staticServices = [
+  { id: 1, name: 'Cabelo', price: 40 },
+  { id: 2, name: 'Barba', price: 20 },
+  { id: 3, name: 'Cabelo + Barba', price: 55 },
+  { id: 4, name: 'Sobrancelha', price: 15 },
+  { id: 5, name: 'Cabelo + Sobrancelha', price: 50 },
+  { id: 6, name: 'Barba + Sobrancelha', price: 30 },
+  { id: 7, name: 'Barba + Sobrancelha + Cabelo', price: 65 },
 ];
 
 const generateTimeSlots = (selectedDate) => {
@@ -36,7 +37,20 @@ const generateTimeSlots = (selectedDate) => {
 function AppointmentPage() {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
-  const [selectedService, setSelectedService] = useState('');
+  const [selectedService, setSelectedService] = useState(''); // will store service id
+  const [services, setServices] = useState(staticServices);
+
+  useEffect(() => {
+    let mounted = true;
+    api.get('/api/services').then(data => {
+      if (mounted && Array.isArray(data) && data.length) {
+        setServices(data);
+      }
+    }).catch(() => {
+      // keep static fallback
+    });
+    return () => { mounted = false; };
+  }, []);
 
   const timeSlots = useMemo(() => generateTimeSlots(date), [date]);
   
@@ -51,20 +65,27 @@ function AppointmentPage() {
     setTime('');
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    const serviceDetails = services.find(s => s.name === selectedService);
+    const serviceDetails = services.find(s => String(s.id) === String(selectedService));
     if (!date || !time || !serviceDetails) {
       toast.error('Por favor, preencha todos os campos.');
       return;
     }
-    toast.success(`Agendamento de ${serviceDetails.name} confirmado!`);
-    setDate('');
-    setTime('');
-    setSelectedService('');
+
+    try {
+      const scheduledAt = new Date(`${date}T${time}:00`).toISOString();
+      await api.post('/api/appointments', { serviceId: serviceDetails.id, scheduledAt });
+      toast.success(`Agendamento de ${serviceDetails.name} confirmado!`);
+      setDate('');
+      setTime('');
+      setSelectedService('');
+    } catch (err) {
+      toast.error(err.message || 'Erro ao criar agendamento');
+    }
   };
 
-  const currentPrice = services.find(s => s.name === selectedService)?.price || 0;
+  const currentPrice = services.find(s => String(s.id) === String(selectedService))?.price || 0;
   const today = new Date().toISOString().split('T')[0];
 
   return (
@@ -87,7 +108,7 @@ function AppointmentPage() {
             <label htmlFor="servico-agendamento">SERVIÇO:</label>
             <select id="servico-agendamento" value={selectedService} onChange={(e) => setSelectedService(e.target.value)} required>
               <option value="">Selecione um serviço</option>
-              {services.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+              {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
           <div className="price-display">
