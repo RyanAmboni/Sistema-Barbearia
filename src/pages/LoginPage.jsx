@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { toast } from 'react-toastify';
+import { api } from '../api';
 
 const EyeIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16">
@@ -17,6 +19,22 @@ const EyeSlashIcon = () => (
 
 function LoginPage({ onLogin, onNavigate }) {
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const data = await api.post('/api/auth/login', { email, password });
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        toast.success('Login realizado');
+        onLogin(data.user || {});
+      }
+    } catch (err) {
+      toast.error(err.message || 'Erro ao fazer login');
+    }
+  };
 
   return (
     <div className="login-layout">
@@ -27,15 +45,15 @@ function LoginPage({ onLogin, onNavigate }) {
       </div>
       <div className="login-form-container">
         <h1>Login</h1>
-        <form onSubmit={(e) => { e.preventDefault(); onLogin({ name: 'Ryan' }); }}>
+        <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="email">E-MAIL:</label>
-            <input type="email" id="email" required />
+            <input type="email" id="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           <div className="form-group">
             <label htmlFor="password">SENHA:</label>
             <div className="password-wrapper">
-              <input type={showPassword ? 'text' : 'password'} id="password" required />
+              <input type={showPassword ? 'text' : 'password'} id="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
               <button type="button" className="password-toggle" onClick={() => setShowPassword(!showPassword)}>
                 {showPassword ? <EyeSlashIcon /> : <EyeIcon />}
               </button>
