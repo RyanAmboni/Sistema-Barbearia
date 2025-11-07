@@ -1,4 +1,11 @@
-const API_BASE = import.meta.env.VITE_API_URL || '';
+const envBase = import.meta.env.VITE_API_URL;
+const fallbackBase = import.meta.env.DEV ? '' : (typeof window !== 'undefined' ? window.location.origin : '');
+const API_BASE = (envBase || fallbackBase || '').replace(/\/$/, '');
+
+const buildUrl = (path = '') => {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return API_BASE ? `${API_BASE}${normalizedPath}` : normalizedPath;
+};
 
 async function request(path, options = {}) {
   const token = localStorage.getItem('token');
@@ -8,7 +15,7 @@ async function request(path, options = {}) {
     headers['Content-Type'] = 'application/json';
   }
 
-  const res = await fetch(API_BASE + path, Object.assign({}, options, { headers }));
+  const res = await fetch(buildUrl(path), Object.assign({}, options, { headers }));
   const text = await res.text();
   let data = text ? (() => { try { return JSON.parse(text); } catch { return text; } })() : null;
   if (!res.ok) {

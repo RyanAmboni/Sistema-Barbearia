@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
-const { sequelize } = require('./models');
+const db = require('./db');
 const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
 const serviceRoutes = require('./routes/service.routes');
@@ -21,11 +21,17 @@ app.use('/api/appointments', appointmentRoutes);
 
 const PORT = process.env.PORT || 3001;
 
-sequelize.sync().then(() => {
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-}).catch(err => {
-  console.error('Unable to start server, DB error:', err);
-});
+const start = async () => {
+  try {
+    await db.query('SELECT 1');
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  } catch (err) {
+    console.error('Unable to start server, DB error:', err);
+    process.exit(1);
+  }
+};
+
+start();
 
 module.exports = app;
 

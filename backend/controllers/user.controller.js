@@ -1,10 +1,12 @@
-const { User } = require('../models');
+const db = require('../db');
 
 exports.getProfile = async (req, res) => {
   try {
-    const user = await User.findByPk(req.userId, { attributes: ['id', 'name', 'email'] });
-    if (!user) return res.status(404).json({ message: 'User not found' });
-    return res.json(user);
+    const result = await db.query('SELECT id, name, email FROM users WHERE id = $1', [req.userId]);
+    if (!result.rowCount) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    return res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: 'Server error' });
@@ -13,20 +15,27 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    const user = await User.findByPk(req.userId);
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
-    const { name, email } = req.body;
-    if (email && email !== user.email) {
-      const exists = await User.findOne({ where: { email } });
-      if (exists) return res.status(409).json({ message: 'Email already in use' });
+    const current = await db.query('SELECT id, name, email FROM users WHERE id = $1', [req.userId]);
+    if (!current.rowCount) {
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    user.name = name || user.name;
-    user.email = email || user.email;
-    await user.save();
+    const { name, email } = req.body;
+    if (email && email !== current.rows[0].email) {
+      const exists = await db.query('SELECT 1 FROM users WHERE email = $1 LIMIT 1', [email]);
+      if (exists.rowCount) {
+        return res.status(409).json({ message: 'Email already in use' });
+      }
+    }
 
-    return res.json({ id: user.id, name: user.name, email: user.email });
+    const nextName = name || current.rows[0].name;
+    const nextEmail = email || current.rows[0].email;
+    const updated = await db.query(
+      'UPDATE users SET name = $1, email = $2 WHERE id = $3 RETURNING id, name, email',
+      [nextName, nextEmail, req.userId]
+    );
+
+    return res.json(updated.rows[0]);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: 'Server error' });
