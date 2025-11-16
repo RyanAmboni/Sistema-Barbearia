@@ -6,7 +6,7 @@ Aplicação completa (frontend + backend) para gerenciamento de barbearias, com 
 
 - **Frontend**: React 19 com Vite, React Toastify para feedbacks e proxy local apontando para `/api`.
 - **Backend**: Node.js + Express, autenticação JWT e consultas SQL simples usando o driver `pg`.
-- **Banco de dados**: PostgreSQL (o projeto originalmente usava SQLite/Sequelize, mas agora opera com SQL direto).
+- **Banco de dados**: PostgreSQL
 
 ## Requisitos
 
@@ -48,6 +48,7 @@ O backend responde em `http://localhost:3001` e expõe as rotas sob `/api/*`.
 ### Frontend
 
 ```bash
+cd frontend
 npm install
 npm run dev
 ```
