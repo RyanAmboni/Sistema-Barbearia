@@ -1,0 +1,1075 @@
+/* --- CONFIGURAÇÃO GLOBAL E FONTES --- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ⬅️ CORREÇÃO CRÍTICA: Garantir 100% de altura para o layout Flex funcionar */
+html, body {
+    height: 100%;
+}
+
+:root {
+  --highlight: #d4c3a3;
+  --dark-bg: #1f3b4d;
+  --medium-bg: #162c3a;
+  --light-text: #f7f5f0;
+  --dark-text: #1f3b4d;
+  --link-blue: #0d2b45;
+}
+
+body {
+  font-family: "Roboto Condensed", sans-serif;
+  background-color: var(--dark-bg);
+  color: var(--light-text);
+  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAAAXNSR0IArs4c6QAAAGVJREFUaAXt0UENwCAQBEF3GgtoC2thw8J3aMErvA4mIj9n224pIsdE/CRstpshQgkhhBBCSCGEEEIIIYQQQgj5K6+Sg48yYkIIIfdGzg0hhJB/Z+SgRx8hhBBCCCGE3C8x/wDNf525EAAAAABJRU5ErkJggg==");
+  background-repeat: repeat;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3 {
+  font-family: "Staatliches", sans-serif;
+  letter-spacing: 2px;
+  font-weight: 400;
+}
+
+/* --- CABEÇALHO E NAVEGAÇÃO --- */
+.header {
+  background-color: var(--dark-bg);
+  padding: 15px 0;
+  border-bottom: 2px solid var(--highlight);
+}
+
+.navbar {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.navbar .menu-buttons:empty {
+  display: none;
+}
+
+.menu-buttons {
+  display: flex;
+  gap: 15px;
+}
+
+.menu-buttons button {
+  color: var(--light-text);
+  padding: 10px 25px;
+  font-family: "Roboto Condensed", sans-serif;
+  font-weight: 700;
+  font-size: 1em;
+  text-transform: uppercase;
+  background-color: transparent;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.menu-buttons button:hover {
+  background-color: var(--medium-bg);
+  color: var(--highlight);
+}
+
+.menu-buttons button.active {
+  background-color: var(--highlight);
+  color: var(--dark-bg);
+}
+
+.user-icon {
+  width: 45px;
+  height: 45px;
+  background-color: transparent;
+  border: 2px solid #555;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.user-icon:hover {
+  border-color: var(--highlight);
+}
+.user-icon span {
+  font-family: "Staatliches", sans-serif;
+  font-size: 2em;
+  color: var(--light-text);
+}
+
+/* --- MÓDULOS NO HEADER (BARBEIRO) --- */
+.module-tabs-header {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  gap: 10px;
+  border-top: 0px solid var(--medium-bg);
+  padding-top: 10px;
+  margin-top: 10px;
+}
+
+.module-tab-header {
+  padding: 10px 25px;
+  background-color: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--light-text);
+  font-family: "Staatliches", sans-serif;
+  font-size: 1.1em;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+}
+
+.module-tab-header:hover {
+  color: var(--highlight);
+  border-bottom-color: var(--highlight);
+}
+
+.module-tab-header.active {
+  color: var(--highlight);
+  border-bottom-color: var(--highlight);
+}
+
+/* --- BOTÕES GERAIS --- */
+.btn {
+  padding: 15px 30px;
+  border: none;
+  border-radius: 8px;
+  font-family: "Roboto Condensed", sans-serif;
+  font-size: 1.1em;
+  font-weight: 700;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 1px;
+}
+
+.btn-primary {
+  background-color: var(--light-text);
+  color: var(--dark-bg);
+  border: 2px solid var(--light-text);
+}
+.btn-primary:hover {
+  background-color: #eee;
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--light-text);
+  border: 2px solid var(--light-text);
+}
+.btn-secondary:hover {
+  background-color: var(--light-text);
+  color: var(--dark-bg);
+}
+
+.btn-red {
+  background-color: var(--highlight);
+  color: var(--dark-bg);
+  border: 2px solid var(--highlight);
+}
+.btn-red:hover {
+  background-color: #cbbf9f;
+}
+
+.btn-confirm {
+  background-color: var(--light-text);
+  color: var(--dark-bg);
+  border-radius: 8px;
+  width: 100%;
+  margin-top: 20px;
+}
+
+/* --- LAYOUTS DE PÁGINA E TÍTULOS --- */
+.main-content {
+  flex: 1;
+  display: flex;
+  justify-content: center; 
+  align-items: center; /* ⬅️ Centralização vertical padrão para formulários */
+  padding: 60px 20px;
+}
+/* A regra .page-container no App.jsx causava conflito,
+   mas renomeamos o elemento para .main-content */
+.page-container { 
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 20px;
+}
+
+.page-content {
+  width: 100%;
+  text-align: center;
+}
+
+.page-title {
+  font-size: 5em;
+  margin-bottom: 60px;
+  color: var(--light-text);
+}
+
+/* --- FORMULÁRIOS E INPUTS --- */
+.form-group {
+  margin-bottom: 25px;
+  text-align: left;
+}
+.form-group label {
+  display: block;
+  font-family: "Staatliches", sans-serif;
+  font-size: 1.5em;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+  color: var(--light-text);
+}
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 12px;
+  border-radius: 5px;
+  border: 2px solid #555;
+  background-color: var(--medium-bg);
+  color: var(--light-text);
+  font-size: 1.1em;
+  font-family: "Roboto Condensed", sans-serif;
+  transition: all 0.2s;
+}
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--highlight);
+}
+.password-wrapper {
+  position: relative;
+}
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  right: 15px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--highlight);
+}
+
+/* --- TELA DE LOGIN E CONTA --- */
+.login-layout {
+  display: flex;
+  width: 100%;
+  max-width: 1100px;
+  background-color: var(--medium-bg);
+  border: 1px solid #333;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+.login-image-placeholder {
+  flex: 1;
+  background-color: var(--light-text);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.login-form-container {
+  flex: 1;
+  padding: 50px;
+}
+.login-form-container h1 {
+  font-size: 5em;
+  margin-bottom: 40px;
+  color: var(--light-text);
+}
+.form-actions {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  align-items: center;
+}
+.account-form-container {
+  width: 100%;
+  max-width: 550px;
+  padding: 40px;
+  background-color: var(--medium-bg);
+  border: 1px solid #444;
+  border-radius: 10px;
+}
+.account-form-container h1 {
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 4em;
+  color: var(--light-text);
+}
+
+/* --- PÁGINA INICIAL --- */
+.home-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 50px;
+  /* ⬅️ CORREÇÃO: Alinha o conteúdo da home ao topo (necessário para páginas longas) */
+  align-self: flex-start;
+}
+.main-image-placeholder {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4px solid var(--highlight);
+}
+.main-image-placeholder img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.welcome-title {
+  font-size: 4.5em;
+  text-align: center;
+  line-height: 1.2;
+  color: var(--light-text);
+}
+.main-buttons-container {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+.social-media p {
+  font-family: "Staatliches", sans-serif;
+  font-size: 2em;
+  margin-bottom: 20px;
+  color: var(--light-text);
+}
+.social-icons {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+.social-icons a {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-size: cover;
+  transition: transform 0.2s;
+}
+.social-icons a:hover {
+  transform: scale(1.1);
+}
+.icon-instagram {
+  background-image: url(/instagram.png);
+}
+.icon-whatsapp {
+  background-image: url(/whatsapp.png);
+}
+
+/* --- PÁGINA DE SERVIÇOS --- */
+.services-container {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 30px;
+  width: 100%;
+  /* ⬅️ CORREÇÃO: Força o conteúdo a alinhar ao topo se a página for longa */
+  align-self: flex-start;
+}
+.service-card {
+  background-color: var(--medium-bg);
+  padding: 30px;
+  border-radius: 10px;
+  width: 100%;
+  max-width: 340px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #333;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+.service-card h2 {
+  font-size: 2.5em;
+  margin-bottom: 20px;
+  color: var(--light-text);
+}
+.service-card .image-placeholder {
+  width: 100%;
+  height: 220px;
+  margin-bottom: auto;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.service-card .image-placeholder img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.service-card .btn {
+  margin-top: 20px;
+}
+
+/* --- PÁGINA DE AGENDAMENTO --- */
+.appointment-container {
+  display: flex;
+  gap: 40px;
+  width: 100%;
+  max-width: 1100px;
+  align-items: flex-start;
+}
+.appointment-form-wrapper {
+  flex: 1.5;
+}
+.appointment-image-placeholder {
+  flex: 1;
+  background-color: var(--light-text);
+  height: 500px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 10px;
+}
+.price-display {
+  text-align: center;
+  font-family: "Staatliches", sans-serif;
+  font-size: 3em;
+  margin: 20px 0;
+  color: var(--light-text);
+}
+.price-display span {
+  color: var(--highlight);
+}
+
+/* --- TELA DE PERFIL --- */
+.profile-container {
+  width: 100%;
+  max-width: 600px;
+  background-color: var(--medium-bg);
+  border: 1px solid #444;
+  border-radius: 15px;
+  overflow: hidden;
+}
+.profile-header {
+  background-color: var(--dark-bg);
+  padding: 30px;
+  text-align: center;
+}
+.profile-avatar {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background-color: var(--highlight);
+  color: var(--light-text);
+  font-family: "Staatliches", sans-serif;
+  font-size: 4em;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto 15px auto;
+}
+.btn-logout {
+  width: 100%;
+  padding: 15px;
+  border-radius: 5px;
+  background-color: var(--highlight);
+  color: var(--dark-bg);
+  border: 2px solid var(--highlight);
+  font-size: 1.1em;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* --- CONTINUAÇÃO: MEUS HORÁRIOS, CONFIRM TOAST, AGENDAMENTO, ETC --- */
+.appointments-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.appointment-card {
+  background-color: var(--medium-bg);
+  border-radius: 10px;
+  border-top: 5px solid var(--highlight);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.appointment-card.finished {
+  border-top-color: #666;
+}
+.appointment-card .card-content {
+  padding: 20px;
+  flex-grow: 1;
+}
+.appointment-card h3 {
+  font-size: 2.2em;
+  margin-bottom: 15px;
+  color: var(--light-text);
+}
+.appointment-card p {
+  color: var(--light-text);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.appointment-card .card-footer {
+  padding: 15px 20px;
+  background-color: var(--dark-bg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.status-badge {
+  background-color: var(--highlight);
+  color: var(--dark-bg);
+  padding: 5px 15px;
+  border-radius: 15px;
+  font-family: "Roboto Condensed", sans-serif;
+  font-size: 0.9em;
+  font-weight: 700;
+}
+.appointment-card.finished .status-badge {
+  background-color: #666;
+  color: var(--light-text);
+}
+.btn-cancel {
+  background: transparent;
+  border: 1px solid var(--highlight);
+  color: var(--highlight);
+  padding: 8px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.btn-cancel:hover {
+  background: var(--highlight);
+  color: var(--dark-bg);
+}
+
+/* --- ESTILO DOS TOASTS --- */
+.Toastify__toast {
+  background-color: var(--medium-bg);
+  color: var(--light-text);
+  border-radius: 8px;
+  border: 1px solid #444;
+}
+.Toastify__toast-body {
+  font-family: "Roboto Condensed", sans-serif;
+}
+.Toastify__progress-bar {
+  background: var(--highlight);
+}
+
+.confirm-toast {
+  padding: 10px;
+  text-align: center;
+}
+.confirm-toast-message {
+  font-family: "Roboto Condensed", sans-serif;
+  font-size: 1.2em;
+  margin-bottom: 20px;
+  color: var(--light-text);
+}
+.confirm-toast-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+.confirm-toast-btn {
+  padding: 8px 25px;
+  border: none;
+  border-radius: 5px;
+  font-family: "Roboto Condensed", sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.confirm-toast-btn-yes {
+  background-color: var(--highlight);
+  color: var(--dark-bg);
+}
+.confirm-toast-btn-yes:hover {
+  background-color: #cbbf9f;
+}
+.confirm-toast-btn-no {
+  background-color: #555;
+  color: var(--light-text);
+}
+.confirm-toast-btn-no:hover {
+  background-color: #444;
+}
+
+/* Estilo para links "Esqueceu a senha" e "Voltar" nos formulários */
+.login-form-container a,
+.account-form-container a {
+  color: var(--light-text);
+  text-decoration: underline;
+  font-size: 0.9em;
+  margin-top: 10px;
+  display: inline-block;
+  transition: color 0.2s;
+}
+.login-form-container a:hover,
+.account-form-container a:hover {
+  color: var(--highlight);
+}
+
+/* CORREÇÃO ÍCONE: Garantindo que ícones SVG fiquem brancos */
+.appointment-card p svg,
+.appointment-card p svg path {
+  fill: var(--light-text);
+  stroke: var(--light-text);
+}
+
+/* --- PERFIL REDESIGN --- */
+.profile-body {
+  flex-grow: 1;
+}
+.profile-menu,
+.profile-form {
+  background-color: var(--medium-bg);
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 30px;
+}
+.profile-form h3 {
+  font-size: 2.5em;
+  text-align: center;
+  margin-bottom: 30px;
+  color: var(--light-text);
+}
+.btn-profile-action {
+  width: 100%;
+  padding: 15px;
+  background-color: transparent;
+  color: var(--light-text);
+  border: 2px solid #444;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  text-align: center;
+  cursor: pointer;
+  font-size: 1.1em;
+  font-weight: 700;
+  transition: all 0.2s;
+}
+.btn-profile-action:hover {
+  border-color: var(--highlight);
+  color: var(--highlight);
+}
+.appointment-summary {
+  margin: 30px 0;
+  padding: 20px;
+  background-color: var(--dark-bg);
+  border-radius: 8px;
+  text-align: center;
+  color: var(--light-text);
+}
+.form-actions-profile {
+  display: flex;
+  gap: 15px;
+  margin-top: 30px;
+}
+.form-actions-profile .btn {
+  flex: 1;
+}
+
+/* --- PAINEL DO BARBEIRO - ESTRUTURA MODULAR --- */
+.barbeiro-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+  /* ⬅️ Força o Painel do Barbeiro a se alinhar ao topo (padrão de scroll) */
+  align-self: flex-start; 
+}
+
+.barbeiro-modules {
+  width: 100%;
+}
+
+.module-content {
+  width: 100%;
+}
+
+/* --- MÓDULO DE AGENDA --- */
+.agenda-module {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.agenda-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.agenda-title {
+  font-family: "Staatliches", sans-serif;
+  font-size: 3em;
+  letter-spacing: 2px;
+  color: var(--light-text);
+  margin: 0;
+}
+
+.agenda-date-selector {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.agenda-date-selector label {
+  font-family: "Staatliches", sans-serif;
+  font-size: 1.2em;
+  color: var(--light-text);
+}
+
+.date-input {
+  padding: 10px 15px;
+  border-radius: 5px;
+  border: 2px solid #555;
+  background-color: var(--medium-bg);
+  color: var(--light-text);
+  font-size: 1em;
+  font-family: "Roboto Condensed", sans-serif;
+  transition: all 0.2s;
+}
+
+.date-input:focus {
+  outline: none;
+  border-color: var(--highlight);
+}
+
+.btn-today {
+  padding: 10px 20px;
+  background-color: var(--highlight);
+  color: var(--dark-bg);
+  border: none;
+  border-radius: 5px;
+  font-family: "Roboto Condensed", sans-serif;
+  font-weight: 700;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+
+.btn-today:hover {
+  background-color: #cbbf9f;
+}
+
+.agenda-loading,
+.agenda-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--light-text);
+  font-size: 1.2em;
+}
+
+.agenda-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.agenda-card {
+  background-color: var(--medium-bg);
+  border-radius: 10px;
+  border-left: 5px solid var(--highlight);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.agenda-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.agenda-card.status-scheduled {
+  border-left-color: #4a90e2;
+}
+
+.agenda-card.status-confirmed {
+  border-left-color: var(--highlight);
+}
+
+.agenda-card.status-finished {
+  border-left-color: #666;
+}
+
+.agenda-card.status-cancelled {
+  border-left-color: #e74c3c;
+  opacity: 0.6;
+}
+
+.agenda-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background-color: var(--dark-bg);
+  border-bottom: 1px solid #333;
+}
+
+.agenda-time {
+  display: flex;
+  align-items: center;
+}
+
+.time-value {
+  font-family: "Staatliches", sans-serif;
+  font-size: 2.5em;
+  color: var(--highlight);
+  letter-spacing: 2px;
+}
+
+.status-badge-agenda {
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-family: "Roboto Condensed", sans-serif;
+  font-size: 0.9em;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.status-badge-agenda.status-scheduled {
+  background-color: #4a90e2;
+  color: var(--light-text);
+}
+
+.status-badge-agenda.status-confirmed {
+  background-color: var(--highlight);
+  color: var(--dark-bg);
+}
+
+.status-badge-agenda.status-finished {
+  background-color: #666;
+  color: var(--light-text);
+}
+
+.status-badge-agenda.status-cancelled {
+  background-color: #e74c3c;
+  color: var(--light-text);
+}
+
+.agenda-card-body {
+  padding: 20px;
+}
+
+.agenda-client {
+  margin-bottom: 15px;
+  font-size: 1.1em;
+  color: var(--light-text);
+}
+
+.agenda-client strong {
+  font-family: "Staatliches", sans-serif;
+  letter-spacing: 1px;
+  margin-right: 8px;
+}
+
+.agenda-service h3 {
+  font-family: "Staatliches", sans-serif;
+  font-size: 2em;
+  margin-bottom: 10px;
+  color: var(--light-text);
+  letter-spacing: 1px;
+}
+
+.service-duration {
+  color: #aaa;
+  margin-bottom: 5px;
+  font-size: 0.95em;
+}
+
+.service-price {
+  font-family: "Staatliches", sans-serif;
+  font-size: 1.5em;
+  color: var(--highlight);
+  margin-top: 10px;
+}
+
+/* Responsividade para o módulo de Agenda */
+@media (max-width: 768px) {
+  .agenda-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .agenda-title {
+    font-size: 2em;
+  }
+
+  .agenda-date-selector {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .date-input {
+    width: 100%;
+  }
+
+  .agenda-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .time-value {
+    font-size: 2em;
+  }
+}
+
+/* --- ESTILOS DO KPI DASHBOARD --- */
+.kpi-dashboard-module {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px 0;
+}
+
+.kpi-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    border-bottom: 2px solid var(--highlight);
+    padding-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.kpi-title {
+    font-family: "Staatliches", sans-serif;
+    font-size: 3em;
+    letter-spacing: 2px;
+    color: var(--light-text);
+    margin: 0;
+}
+
+.kpi-date-selector {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.kpi-date-selector button {
+    padding: 10px 15px;
+    background-color: var(--medium-bg);
+    color: var(--light-text);
+    border: 1px solid #444;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 700;
+    transition: background-color 0.2s, border-color 0.2s;
+    font-family: "Roboto Condensed", sans-serif;
+    text-transform: uppercase;
+}
+
+.kpi-date-selector button:hover {
+    background-color: #2b4557;
+    border-color: var(--highlight);
+}
+
+.current-period {
+    font-weight: bold;
+    font-size: 1.2em;
+    min-width: 150px;
+    text-align: center;
+    font-family: "Staatliches", sans-serif;
+    letter-spacing: 1px;
+    color: var(--highlight);
+}
+
+.kpi-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 30px;
+}
+
+.kpi-card {
+    background-color: var(--medium-bg);
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    padding: 30px;
+    text-align: center;
+    transition: transform 0.2s;
+    border-left: 5px solid;
+}
+
+.kpi-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
+}
+
+.kpi-card-title {
+    font-family: "Roboto Condensed", sans-serif;
+    font-size: 1em;
+    color: #aaa;
+    margin: 0 0 10px 0;
+    text-transform: uppercase;
+}
+
+.kpi-card-value {
+    font-family: "Staatliches", sans-serif;
+    font-size: 3.5em;
+    font-weight: 700;
+    margin: 5px 0;
+    line-height: 1;
+    color: var(--light-text);
+}
+
+.kpi-card-description {
+    font-size: 0.85em;
+    color: #666;
+    margin-top: 10px;
+}
+
+/* Cores de destaque para os cartões de KPI */
+.appointments-card { border-left-color: var(--highlight); }
+.revenue-card { border-left-color: #e74c3c; }
+.average-ticket-card { border-left-color: #4a90e2; }
+
+/* Responsividade para o módulo KPI */
+@media (max-width: 768px) {
+    .kpi-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .kpi-title {
+        font-size: 2.5em;
+    }
+    .kpi-date-selector {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .current-period {
+        flex-grow: 1;
+    }
+    .kpi-date-selector button {
+        width: 45%; 
+    }
+}
