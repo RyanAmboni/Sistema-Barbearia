@@ -1,5 +1,4 @@
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+const supabase = require("../config/supabase");
 const db = require("../db");
 
 const publicUser = (row) => ({
@@ -15,23 +14,154 @@ exports.register = async (req, res) => {
     if (!name || !email || !password) {
       return res.status(400).json({ message: "Missing fields" });
     }
-    const userRole = role === "barbeiro" ? "barbeiro" : "cliente";
-    const existing = await db.query(
-      "SELECT id FROM users WHERE email = $1 LIMIT 1",
-      [email]
-    );
-    if (existing.rowCount) {
+    
+    // Restringir: apenas clientes podem se registrar diretamente
+    // Barbeiros devem ser criados por outros barbeiros através do endpoint de atualização de role
+    const userRole = "cliente";
+    
+    // Verificar se email já existe
+    const { data: existingUser } = await supabase
+      .from("users")
+      .select("id")
+      .eq("email", email)
+      .limit(1)
+      .single();
+    
+    if (existingUser) {
       return res.status(409).json({ message: "Email already in use" });
     }
-    const hash = await bcrypt.hash(password, 8);
-    const inserted = await db.query(
-      "INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role",
-      [name, email, hash, userRole]
-    );
-    return res.status(201).json(publicUser(inserted.rows[0]));
+    
+    // Criar usuário no Supabase Auth usando admin API
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true, // Auto-confirmar email
+      user_metadata: {
+        name,
+        role: userRole,
+      },
+    });
+
+    if (authError) {
+      if (authError.message.includes("already registered") || authError.message.includes("already exists")) {
+        return res.status(409).json({ message: "Email already in use" });
+      }
+      console.error("Auth error:", authError);
+      return res.status(500).json({ message: "Error creating user" });
+    }
+
+    // Criar perfil na tabela users
+    const { data: profileData, error: profileError } = await supabase
+      .from("users")
+      .insert({
+        id: authData.user.id,
+        name,
+        email,
+        role: userRole,
+      })
+      .select()
+      .single();
+
+    if (profileError) {
+      // Se falhar ao criar perfil, tentar deletar o usuário de auth
+      await supabase.auth.admin.deleteUser(authData.user.id);
+      console.error("Profile error:", profileError);
+      return res.status(500).json({ message: "Error creating user profile" });
+    }
+
+    return res.status(201).json(publicUser(profileData));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Server error" });
+  }
+};
+
+/**
+ * Criar o primeiro barbeiro do sistema
+ * Este endpoint só funciona se não houver barbeiros no sistema ainda
+ */
+exports.createFirstBarbeiro = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "Campos obrigatórios: name, email, password" });
+    }
+
+    // Verificar se já existe algum barbeiro no sistema
+    const { data: existingBarbeiros, error: checkError } = await supabase
+      .from("users")
+      .select("id")
+      .eq("role", "barbeiro")
+      .limit(1);
+
+    if (checkError) {
+      console.error("Error checking barbeiros:", checkError);
+      return res.status(500).json({ message: "Erro ao verificar barbeiros existentes" });
+    }
+
+    if (existingBarbeiros && existingBarbeiros.length > 0) {
+      return res.status(403).json({ 
+        message: "Já existem barbeiros no sistema. Use o endpoint /api/users/role para criar novos barbeiros." 
+      });
+    }
+
+    // Verificar se email já existe
+    const { data: existingUser } = await supabase
+      .from("users")
+      .select("id")
+      .eq("email", email)
+      .limit(1)
+      .single();
+    
+    if (existingUser) {
+      return res.status(409).json({ message: "Email já está em uso" });
+    }
+    
+    // Criar usuário no Supabase Auth usando admin API
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        name,
+        role: "barbeiro",
+      },
+    });
+
+    if (authError) {
+      if (authError.message.includes("already registered") || authError.message.includes("already exists")) {
+        return res.status(409).json({ message: "Email já está em uso" });
+      }
+      console.error("Auth error:", authError);
+      return res.status(500).json({ message: "Erro ao criar usuário" });
+    }
+
+    // Criar perfil na tabela users com role barbeiro
+    const { data: profileData, error: profileError } = await supabase
+      .from("users")
+      .insert({
+        id: authData.user.id,
+        name,
+        email,
+        role: "barbeiro",
+      })
+      .select()
+      .single();
+
+    if (profileError) {
+      // Se falhar ao criar perfil, tentar deletar o usuário de auth
+      await supabase.auth.admin.deleteUser(authData.user.id);
+      console.error("Profile error:", profileError);
+      return res.status(500).json({ message: "Erro ao criar perfil do usuário" });
+    }
+
+    return res.status(201).json({
+      message: "Primeiro barbeiro criado com sucesso!",
+      user: publicUser(profileData)
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Erro no servidor" });
   }
 };
 
@@ -42,26 +172,33 @@ exports.login = async (req, res) => {
       return res.status(400).json({ message: "Missing fields" });
     }
 
-    const userResult = await db.query(
-      "SELECT id, name, email, password, role FROM users WHERE email = $1 LIMIT 1",
-      [email]
-    );
-    if (!userResult.rowCount) {
+    // Autenticar com Supabase
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (authError || !authData.user) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    const user = userResult.rows[0];
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid) {
-      return res.status(401).json({ message: "Invalid credentials" });
+    // Buscar perfil do usuário
+    const { data: profile, error: profileError } = await supabase
+      .from("users")
+      .select("id, name, email, role")
+      .eq("id", authData.user.id)
+      .single();
+
+    if (profileError || !profile) {
+      console.error("Profile error:", profileError);
+      return res.status(500).json({ message: "Error fetching user profile" });
     }
 
-    const token = jwt.sign(
-      { id: user.id },
-      process.env.JWT_SECRET || "secret",
-      { expiresIn: "7d" }
-    );
-    return res.json({ token, user: publicUser(user) });
+    // Retornar token do Supabase e dados do usuário
+    return res.json({
+      token: authData.session.access_token,
+      user: publicUser(profile),
+    });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Server error" });

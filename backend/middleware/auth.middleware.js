@@ -1,8 +1,12 @@
-const jwt = require('jsonwebtoken');
+const supabase = require('../config/supabase');
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
+  console.log(`🔐 Auth middleware: ${req.method} ${req.path}`);
   const header = req.headers['authorization'];
-  if (!header) return res.status(401).json({ message: 'No token provided' });
+  if (!header) {
+    console.log('❌ No token provided');
+    return res.status(401).json({ message: 'No token provided' });
+  }
 
   const parts = header.split(' ');
   if (parts.length !== 2) return res.status(401).json({ message: 'Token error' });
@@ -11,10 +15,17 @@ const authMiddleware = (req, res, next) => {
   if (!/^Bearer$/i.test(scheme)) return res.status(401).json({ message: 'Malformed token' });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
-    req.userId = decoded.id;
+    // Verificar token com Supabase
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    
+    if (error || !user) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+
+    req.userId = user.id;
     next();
   } catch (err) {
+    console.error('Auth middleware error:', err);
     return res.status(401).json({ message: 'Invalid token' });
   }
 };

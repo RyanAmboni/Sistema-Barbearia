@@ -1,4 +1,4 @@
-const db = require("../db");
+const supabase = require("../config/supabase");
 
 const mapAppointment = (row) => {
   const appointment = {
@@ -9,12 +9,19 @@ const mapAppointment = (row) => {
     status: row.status,
   };
 
-  if (row.service_id && row.service_name) {
+  if (row.services) {
     appointment.service = {
-      id: row.service_id,
-      name: row.service_name,
-      price: row.service_price !== null ? Number(row.service_price) : null,
-      durationMinutes: row.service_duration_minutes,
+      id: row.services.id,
+      name: row.services.name,
+      price: row.services.price !== null ? Number(row.services.price) : null,
+      durationMinutes: row.services.duration_minutes,
+    };
+  }
+
+  if (row.users) {
+    appointment.client = {
+      name: row.users.name,
+      email: row.users.email,
     };
   }
 
@@ -22,16 +29,21 @@ const mapAppointment = (row) => {
 };
 
 exports.create = async (req, res) => {
+  console.log(`📅 Create appointment: ${JSON.stringify(req.body)}`);
   try {
     const { serviceId, scheduledAt } = req.body;
     if (!serviceId || !scheduledAt) {
       return res.status(400).json({ message: "Missing fields" });
     }
 
-    const service = await db.query("SELECT id FROM services WHERE id = $1", [
-      serviceId,
-    ]);
-    if (!service.rowCount) {
+    // Verificar se serviço existe
+    const { data: service, error: serviceError } = await supabase
+      .from("services")
+      .select("id")
+      .eq("id", serviceId)
+      .single();
+
+    if (serviceError || !service) {
       return res.status(404).json({ message: "Service not found" });
     }
 
@@ -40,12 +52,20 @@ exports.create = async (req, res) => {
       return res.status(400).json({ message: "Invalid date" });
     }
 
-    const inserted = await db.query(
-      "INSERT INTO appointments (user_id, service_id, scheduled_at, status) VALUES ($1, $2, $3, $4) RETURNING id, user_id, service_id, scheduled_at, status",
-      [req.userId, serviceId, finalDate.toISOString(), "scheduled"]
-    );
+    const { data: inserted, error: insertError } = await supabase
+      .from("appointments")
+      .insert({
+        user_id: req.userId,
+        service_id: serviceId,
+        scheduled_at: finalDate.toISOString(),
+        status: "scheduled",
+      })
+      .select("id, user_id, service_id, scheduled_at, status")
+      .single();
 
-    return res.status(201).json(mapAppointment(inserted.rows[0]));
+    if (insertError) throw insertError;
+
+    return res.status(201).json(mapAppointment(inserted));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Server error" });
@@ -54,24 +74,27 @@ exports.create = async (req, res) => {
 
 exports.listForUser = async (req, res) => {
   try {
-    const result = await db.query(
-      `SELECT 
-        a.id,
-        a.user_id,
-        a.service_id,
-        a.scheduled_at,
-        a.status,
-        s.name AS service_name,
-        s.price AS service_price,
-        s.duration_minutes AS service_duration_minutes
-      FROM appointments a
-      LEFT JOIN services s ON s.id = a.service_id
-      WHERE a.user_id = $1
-      ORDER BY a.scheduled_at DESC`,
-      [req.userId]
-    );
+    const { data, error } = await supabase
+      .from("appointments")
+      .select(`
+        id,
+        user_id,
+        service_id,
+        scheduled_at,
+        status,
+        services (
+          id,
+          name,
+          price,
+          duration_minutes
+        )
+      `)
+      .eq("user_id", req.userId)
+      .order("scheduled_at", { ascending: false });
 
-    return res.json(result.rows.map(mapAppointment));
+    if (error) throw error;
+
+    return res.json(data.map(mapAppointment));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Server error" });
@@ -81,45 +104,58 @@ exports.listForUser = async (req, res) => {
 exports.listAll = async (req, res) => {
   try {
     // Verificar se o usuário é barbeiro
-    const userResult = await db.query("SELECT role FROM users WHERE id = $1", [
-      req.userId,
-    ]);
-    if (!userResult.rowCount || userResult.rows[0].role !== "barbeiro") {
+    const { data: user, error: userError } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", req.userId)
+      .single();
+
+    if (userError || !user || user.role !== "barbeiro") {
       return res.status(403).json({ message: "Not allowed" });
     }
 
-    const result = await db.query(
-      `SELECT 
-        a.id,
-        a.user_id,
-        a.service_id,
-        a.scheduled_at,
-        a.status,
-        s.name AS service_name,
-        s.price AS service_price,
-        s.duration_minutes AS service_duration_minutes,
-        u.name AS client_name,
-        u.email AS client_email
-      FROM appointments a
-      LEFT JOIN services s ON s.id = a.service_id
-      LEFT JOIN users u ON u.id = a.user_id
-      WHERE a.status != 'cancelled'
-      ORDER BY a.scheduled_at ASC`,
-      []
-    );
+    const { data: appointments, error } = await supabase
+      .from("appointments")
+      .select(`
+        id,
+        user_id,
+        service_id,
+        scheduled_at,
+        status,
+        services (
+          id,
+          name,
+          price,
+          duration_minutes
+        )
+      `)
+      .neq("status", "cancelled")
+      .order("scheduled_at", { ascending: true });
 
-    const appointments = result.rows.map((row) => {
-      const appointment = mapAppointment(row);
-      if (row.client_name) {
+    if (error) throw error;
+
+    // Buscar dados dos clientes separadamente
+    const userIds = [...new Set(appointments.map(a => a.user_id))];
+    const { data: users } = await supabase
+      .from("users")
+      .select("id, name, email")
+      .in("id", userIds);
+
+    // Combinar dados
+    const usersMap = new Map(users?.map(u => [u.id, u]) || []);
+    const appointmentsWithClients = appointments.map(apt => {
+      const appointment = mapAppointment(apt);
+      const client = usersMap.get(apt.user_id);
+      if (client) {
         appointment.client = {
-          name: row.client_name,
-          email: row.client_email,
+          name: client.name,
+          email: client.email,
         };
       }
       return appointment;
     });
 
-    return res.json(appointments);
+    return res.json(appointmentsWithClients);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Server error" });
@@ -129,25 +165,31 @@ exports.listAll = async (req, res) => {
 exports.cancel = async (req, res) => {
   try {
     const { id } = req.params;
-    const appointment = await db.query(
-      "SELECT id, user_id, service_id, scheduled_at, status FROM appointments WHERE id = $1",
-      [id]
-    );
+    
+    const { data: appointment, error: fetchError } = await supabase
+      .from("appointments")
+      .select("id, user_id, service_id, scheduled_at, status")
+      .eq("id", id)
+      .single();
 
-    if (!appointment.rowCount) {
+    if (fetchError || !appointment) {
       return res.status(404).json({ message: "Appointment not found" });
     }
 
-    if (appointment.rows[0].user_id !== req.userId) {
+    if (appointment.user_id !== req.userId) {
       return res.status(403).json({ message: "Not allowed" });
     }
 
-    const updated = await db.query(
-      "UPDATE appointments SET status = $1 WHERE id = $2 RETURNING id, user_id, service_id, scheduled_at, status",
-      ["cancelled", id]
-    );
+    const { data: updated, error: updateError } = await supabase
+      .from("appointments")
+      .update({ status: "cancelled" })
+      .eq("id", id)
+      .select("id, user_id, service_id, scheduled_at, status")
+      .single();
 
-    return res.json(mapAppointment(updated.rows[0]));
+    if (updateError) throw updateError;
+
+    return res.json(mapAppointment(updated));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Server error" });

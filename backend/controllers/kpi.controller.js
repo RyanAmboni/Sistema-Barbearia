@@ -1,4 +1,4 @@
-const db = require('../db');
+const supabase = require('../config/supabase');
 
 /**
  * Endpoint para obter KPIs (Número de Agendamentos e Receita Mensal).
@@ -14,20 +14,23 @@ exports.getKpis = async (req, res) => {
     }
 
     // 1. Verificação de permissão (apenas 'barbeiro' pode ver estes KPIs)
-    const userResult = await db.query('SELECT role FROM users WHERE id = $1', [req.userId]);
-    if (!userResult.rowCount || userResult.rows[0].role !== 'barbeiro') {
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', req.userId)
+      .single();
+
+    if (userError || !user || user.role !== 'barbeiro') {
       return res.status(403).json({ message: 'Not allowed to view KPIs' });
     }
 
     // 2. Definindo o intervalo de datas (início e fim do mês)
-    // Usamos $mes - 1 porque o Date object usa 0 para Janeiro
     const mesNumero = parseInt(mes, 10);
     const anoNumero = parseInt(ano, 10);
     
     // Início do mês (ex: 2025-11-01 00:00:00)
     const dataInicio = new Date(anoNumero, mesNumero - 1, 1);
-    // Início do próximo mês (ex: 2025-12-01 00:00:00). 
-    // É mais eficiente buscar até o início do próximo mês.
+    // Início do próximo mês (ex: 2025-12-01 00:00:00)
     const dataFim = new Date(anoNumero, mesNumero, 1);
 
     if (Number.isNaN(dataInicio.getTime()) || Number.isNaN(dataFim.getTime())) {
@@ -35,35 +38,42 @@ exports.getKpis = async (req, res) => {
     }
 
     // --- KPI 1: Número de Agendamentos (Total) ---
-    // Considera todos os agendamentos que foram 'scheduled' ou 'completed' no mês
-    const appointmentsResult = await db.query(
-        `SELECT COUNT(id) AS count
-         FROM appointments 
-         WHERE scheduled_at >= $1 AND scheduled_at < $2 
-         AND status IN ('scheduled', 'completed')`,
-        [dataInicio.toISOString(), dataFim.toISOString()]
-    );
-    const numAgendamentos = parseInt(appointmentsResult.rows[0].count, 10);
+    const { count: numAgendamentos, error: countError } = await supabase
+      .from('appointments')
+      .select('*', { count: 'exact', head: true })
+      .gte('scheduled_at', dataInicio.toISOString())
+      .lt('scheduled_at', dataFim.toISOString())
+      .in('status', ['scheduled', 'completed']);
 
+    if (countError) throw countError;
 
     // --- KPI 2: Receita Mensal (Dinheiro Recebido) ---
-    // Soma o preço dos serviços APENAS para agendamentos CONCLUÍDOS ('completed') no mês
-    const revenueResult = await db.query(
-        `SELECT SUM(s.price) AS total_revenue
-         FROM appointments a
-         JOIN services s ON s.id = a.service_id
-         WHERE a.scheduled_at >= $1 AND a.scheduled_at < $2
-         AND a.status = 'completed'`, // Filtra apenas o que foi CONCLUÍDO/PAGO
-        [dataInicio.toISOString(), dataFim.toISOString()]
-    );
-    
-    const receitaMensal = Number(revenueResult.rows[0].total_revenue) || 0;
+    // Buscar agendamentos concluídos com seus serviços
+    const { data: completedAppointments, error: revenueError } = await supabase
+      .from('appointments')
+      .select(`
+        id,
+        services (
+          price
+        )
+      `)
+      .gte('scheduled_at', dataInicio.toISOString())
+      .lt('scheduled_at', dataFim.toISOString())
+      .eq('status', 'completed');
+
+    if (revenueError) throw revenueError;
+
+    // Calcular receita total
+    const receitaMensal = completedAppointments?.reduce((total, appointment) => {
+      const price = appointment.services?.price || 0;
+      return total + Number(price);
+    }, 0) || 0;
     
     // --- Retorno dos KPIs ---
     return res.json({
       mes,
       ano,
-      numAgendamentos,
+      numAgendamentos: numAgendamentos || 0,
       receitaMensal: parseFloat(receitaMensal.toFixed(2)), // Garante 2 casas decimais
     });
 

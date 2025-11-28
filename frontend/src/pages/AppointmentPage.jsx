@@ -38,16 +38,32 @@ function AppointmentPage() {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [selectedService, setSelectedService] = useState(''); // will store service id
-  const [services, setServices] = useState(staticServices);
+  const [services, setServices] = useState([]);
+  const [loadingServices, setLoadingServices] = useState(true);
 
   useEffect(() => {
     let mounted = true;
+    setLoadingServices(true);
     api.get('/api/services').then(data => {
       if (mounted && Array.isArray(data) && data.length) {
+        console.log('Serviços carregados da API:', data);
         setServices(data);
+      } else if (mounted) {
+        // Se não houver serviços na API, usar fallback estático
+        console.warn('Nenhum serviço encontrado na API, usando fallback');
+        setServices(staticServices);
       }
-    }).catch(() => {
-      // keep static fallback
+    }).catch((err) => {
+      console.error('Erro ao carregar serviços:', err);
+      // Usar fallback estático apenas em caso de erro
+      if (mounted) {
+        setServices(staticServices);
+        toast.error('Não foi possível carregar os serviços. Usando lista padrão.');
+      }
+    }).finally(() => {
+      if (mounted) {
+        setLoadingServices(false);
+      }
     });
     return () => { mounted = false; };
   }, []);
@@ -106,8 +122,8 @@ function AppointmentPage() {
           </div>
           <div className="form-group">
             <label htmlFor="servico-agendamento">SERVIÇO:</label>
-            <select id="servico-agendamento" value={selectedService} onChange={(e) => setSelectedService(e.target.value)} required>
-              <option value="">Selecione um serviço</option>
+            <select id="servico-agendamento" value={selectedService} onChange={(e) => setSelectedService(e.target.value)} required disabled={loadingServices || services.length === 0}>
+              <option value="">{loadingServices ? 'Carregando serviços...' : services.length === 0 ? 'Nenhum serviço disponível' : 'Selecione um serviço'}</option>
               {services.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>

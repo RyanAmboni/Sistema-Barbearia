@@ -19,23 +19,30 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/appointments', appointmentRoutes);
+console.log('✅ Rotas registradas: /api/appointments');
 app.use('/api/kpi', kpiRoutes); // ⬅️ NOVO: Habilita o endpoint /api/kpi
 
-const PORT = process.env.PORT || 3001;
+// Handler para rotas não encontradas
+app.use((req, res) => {
+  console.log(`❌ Rota não encontrada: ${req.method} ${req.path}`);
+  res.status(404).json({ message: 'Route not found', path: req.path, method: req.method });
+});
 
-const start = async () => {
-  try {
-    // Tenta conectar ao DB antes de iniciar o servidor
-    await db.query('SELECT 1'); 
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-  } catch (err) {
-    console.error('Unable to start server, DB error:', err);
-    process.exit(1);
-  }
-};
+// Verificar se as variáveis do Supabase estão configuradas
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.warn('⚠️  Supabase environment variables not set. Please configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
+}
 
-start();
+// Para desenvolvimento local
+if (require.main === module) {
+  const PORT = process.env.PORT || 3001;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📦 Using Supabase: ${process.env.SUPABASE_URL ? '✅ Configured' : '❌ Not configured'}`);
+  });
+}
 
+// Exportar para Vercel serverless
 module.exports = app;
 
 process.on('uncaughtException', (err) => {
