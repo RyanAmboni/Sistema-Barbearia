@@ -10,6 +10,18 @@ const publicUser = (row) => ({
 
 exports.register = async (req, res) => {
   try {
+    // Verificar se Supabase está configurado
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error("Supabase not configured:", {
+        hasUrl: !!process.env.SUPABASE_URL,
+        hasKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY
+      });
+      return res.status(500).json({ 
+        message: "Server configuration error. Please contact support.",
+        error: "Supabase environment variables not configured"
+      });
+    }
+
     const { name, email, password, role } = req.body;
     if (!name || !email || !password) {
       return res.status(400).json({ message: "Missing fields" });
@@ -47,7 +59,12 @@ exports.register = async (req, res) => {
         return res.status(409).json({ message: "Email already in use" });
       }
       console.error("Auth error:", authError);
-      return res.status(500).json({ message: "Error creating user" });
+      console.error("Auth error details:", JSON.stringify(authError, null, 2));
+      return res.status(500).json({ 
+        message: "Error creating user",
+        error: authError.message || "Unknown error",
+        details: process.env.NODE_ENV === 'development' ? authError : undefined
+      });
     }
 
     // Criar perfil na tabela users
@@ -66,7 +83,12 @@ exports.register = async (req, res) => {
       // Se falhar ao criar perfil, tentar deletar o usuário de auth
       await supabase.auth.admin.deleteUser(authData.user.id);
       console.error("Profile error:", profileError);
-      return res.status(500).json({ message: "Error creating user profile" });
+      console.error("Profile error details:", JSON.stringify(profileError, null, 2));
+      return res.status(500).json({ 
+        message: "Error creating user profile",
+        error: profileError.message || "Unknown error",
+        details: process.env.NODE_ENV === 'development' ? profileError : undefined
+      });
     }
 
     return res.status(201).json(publicUser(profileData));
@@ -167,7 +189,7 @@ exports.createFirstBarbeiro = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, role } = req.body;
     if (!email || !password) {
       return res.status(400).json({ message: "Missing fields" });
     }
@@ -192,6 +214,13 @@ exports.login = async (req, res) => {
     if (profileError || !profile) {
       console.error("Profile error:", profileError);
       return res.status(500).json({ message: "Error fetching user profile" });
+    }
+
+    // Validar se o perfil selecionado corresponde ao perfil do usuário
+    if (role && role !== profile.role) {
+      return res.status(403).json({ 
+        message: `Você não tem permissão para acessar como ${role}. Seu perfil é ${profile.role}.` 
+      });
     }
 
     // Retornar token do Supabase e dados do usuário

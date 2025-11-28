@@ -14,7 +14,30 @@ function CreateAccountPage({ onNavigate }) {
       toast.success('Conta criada com sucesso!');
       onNavigate('login');
     } catch (err) {
-      toast.error(err.message || 'Erro ao criar conta');
+      console.error('Erro ao criar conta:', err);
+      
+      // Mensagens de erro mais específicas
+      let errorMessage = 'Erro ao criar conta.';
+      
+      if (err?.status === 409) {
+        errorMessage = 'Este email já está cadastrado. Tente fazer login ou use outro email.';
+      } else if (err?.status === 400) {
+        errorMessage = 'Por favor, preencha todos os campos obrigatórios.';
+      } else if (err?.status === 500) {
+        if (err?.error) {
+          errorMessage = `Erro no servidor: ${err.error}`;
+        } else if (err?.message && err.message.includes('configuration')) {
+          errorMessage = 'Erro de configuração do servidor. Entre em contato com o suporte.';
+        } else {
+          errorMessage = 'Erro ao criar conta. Verifique sua conexão e tente novamente.';
+        }
+      } else if (err?.message) {
+        errorMessage = err.message;
+      } else if (err?.error) {
+        errorMessage = err.error;
+      }
+      
+      toast.error(errorMessage);
     }
   };
 

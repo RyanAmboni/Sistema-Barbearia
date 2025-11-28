@@ -19,7 +19,11 @@ async function request(path, options = {}) {
   const text = await res.text();
   let data = text ? (() => { try { return JSON.parse(text); } catch { return text; } })() : null;
   if (!res.ok) {
-    const err = (data && data.message) ? data : { message: res.statusText || 'Request failed' };
+    const err = new Error(data?.message || data?.error || res.statusText || 'Request failed');
+    err.status = res.status;
+    err.data = data;
+    if (data?.error) err.error = data.error;
+    if (data?.details) err.details = data.details;
     throw err;
   }
   return data;
