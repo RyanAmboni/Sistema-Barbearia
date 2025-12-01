@@ -40,6 +40,8 @@ function AppointmentPage() {
   const [selectedService, setSelectedService] = useState(''); // will store service id
   const [services, setServices] = useState([]);
   const [loadingServices, setLoadingServices] = useState(true);
+  const [occupiedSlots, setOccupiedSlots] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -68,7 +70,41 @@ function AppointmentPage() {
     return () => { mounted = false; };
   }, []);
 
-  const timeSlots = useMemo(() => generateTimeSlots(date), [date]);
+  // Buscar horários ocupados quando a data mudar
+  useEffect(() => {
+    if (!date) {
+      setOccupiedSlots([]);
+      return;
+    }
+
+    let mounted = true;
+    setLoadingSlots(true);
+    api.get(`/api/appointments/occupied-slots?date=${date}`)
+      .then(data => {
+        if (mounted && data.occupiedSlots) {
+          setOccupiedSlots(data.occupiedSlots);
+        }
+      })
+      .catch((err) => {
+        console.error('Erro ao carregar horários ocupados:', err);
+        if (mounted) {
+          setOccupiedSlots([]);
+        }
+      })
+      .finally(() => {
+        if (mounted) {
+          setLoadingSlots(false);
+        }
+      });
+
+    return () => { mounted = false; };
+  }, [date]);
+
+  const timeSlots = useMemo(() => {
+    const allSlots = generateTimeSlots(date);
+    // Filtrar horários ocupados
+    return allSlots.filter(slot => !occupiedSlots.includes(slot));
+  }, [date, occupiedSlots]);
   
   const handleDateChange = (e) => {
     const selectedDate = new Date(e.target.value);
@@ -79,6 +115,7 @@ function AppointmentPage() {
       setDate(e.target.value);
     }
     setTime('');
+    setOccupiedSlots([]); // Limpar slots ocupados ao mudar data
   };
 
   const handleSubmit = async (event) => {
@@ -93,11 +130,32 @@ function AppointmentPage() {
       const scheduledAt = new Date(`${date}T${time}:00`).toISOString();
       await api.post('/api/appointments', { serviceId: serviceDetails.id, scheduledAt });
       toast.success(`Agendamento de ${serviceDetails.name} confirmado!`);
-      setDate('');
+      // Recarregar horários ocupados para atualizar a lista
+      if (date) {
+        const data = await api.get(`/api/appointments/occupied-slots?date=${date}`);
+        if (data.occupiedSlots) {
+          setOccupiedSlots(data.occupiedSlots);
+        }
+      }
       setTime('');
       setSelectedService('');
     } catch (err) {
-      toast.error(err.message || 'Erro ao criar agendamento');
+      if (err.status === 409) {
+        toast.error('Este horário já está ocupado. Por favor, selecione outro horário.');
+        // Recarregar horários ocupados
+        if (date) {
+          try {
+            const data = await api.get(`/api/appointments/occupied-slots?date=${date}`);
+            if (data.occupiedSlots) {
+              setOccupiedSlots(data.occupiedSlots);
+            }
+          } catch (reloadErr) {
+            console.error('Erro ao recarregar horários:', reloadErr);
+          }
+        }
+      } else {
+        toast.error(err.message || 'Erro ao criar agendamento');
+      }
     }
   };
 
@@ -115,8 +173,16 @@ function AppointmentPage() {
           </div>
           <div className="form-group">
             <label htmlFor="horario-disponivel">HORÁRIOS DISPONÍVEIS:</label>
-            <select id="horario-disponivel" value={time} onChange={(e) => setTime(e.target.value)} required disabled={!date}>
-              <option value="">{date ? 'Selecione um horário' : 'Selecione uma data primeiro'}</option>
+            <select id="horario-disponivel" value={time} onChange={(e) => setTime(e.target.value)} required disabled={!date || loadingSlots}>
+              <option value="">
+                {loadingSlots 
+                  ? 'Carregando horários...' 
+                  : date 
+                    ? timeSlots.length === 0 
+                      ? 'Nenhum horário disponível para esta data' 
+                      : 'Selecione um horário' 
+                    : 'Selecione uma data primeiro'}
+              </option>
               {timeSlots.map(slot => <option key={slot} value={slot}>{slot}</option>)}
             </select>
           </div>

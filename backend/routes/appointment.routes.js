@@ -6,6 +6,7 @@ const auth = require("../middleware/auth.middleware");
 router.post("/", auth, appointmentController.create);
 router.get("/", auth, appointmentController.listForUser);
 router.get("/all", auth, appointmentController.listAll);
+router.get("/occupied-slots", auth, appointmentController.getOccupiedSlots);
 router.delete("/:id", auth, appointmentController.cancel);
 
 module.exports = router;

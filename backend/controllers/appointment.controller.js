@@ -36,10 +36,10 @@ exports.create = async (req, res) => {
       return res.status(400).json({ message: "Missing fields" });
     }
 
-    // Verificar se serviço existe
+    // Verificar se serviço existe e obter duração
     const { data: service, error: serviceError } = await supabase
       .from("services")
-      .select("id")
+      .select("id, duration_minutes")
       .eq("id", serviceId)
       .single();
 
@@ -50,6 +50,48 @@ exports.create = async (req, res) => {
     const finalDate = new Date(scheduledAt);
     if (Number.isNaN(finalDate.getTime())) {
       return res.status(400).json({ message: "Invalid date" });
+    }
+
+    // Verificar se o horário já está ocupado
+    const startOfDay = new Date(finalDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(finalDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const serviceDuration = service.duration_minutes || 30;
+    const serviceEndTime = new Date(finalDate.getTime() + serviceDuration * 60000);
+
+    // Buscar agendamentos conflitantes no mesmo dia
+    const { data: conflictingAppointments, error: conflictError } = await supabase
+      .from("appointments")
+      .select(`
+        scheduled_at,
+        services (
+          duration_minutes
+        )
+      `)
+      .gte("scheduled_at", startOfDay.toISOString())
+      .lte("scheduled_at", endOfDay.toISOString())
+      .neq("status", "cancelled");
+
+    if (conflictError) throw conflictError;
+
+    // Verificar se há conflito de horário
+    const hasConflict = conflictingAppointments.some((appt) => {
+      const apptStart = new Date(appt.scheduled_at);
+      const apptDuration = appt.services?.duration_minutes || 30;
+      const apptEnd = new Date(apptStart.getTime() + apptDuration * 60000);
+
+      // Verificar sobreposição: o novo agendamento não pode começar durante outro
+      // e outro agendamento não pode começar durante o novo
+      return (
+        (finalDate >= apptStart && finalDate < apptEnd) ||
+        (apptStart >= finalDate && apptStart < serviceEndTime)
+      );
+    });
+
+    if (hasConflict) {
+      return res.status(409).json({ message: "Horário já está ocupado" });
     }
 
     const { data: inserted, error: insertError } = await supabase
@@ -190,6 +232,66 @@ exports.cancel = async (req, res) => {
     if (updateError) throw updateError;
 
     return res.json(mapAppointment(updated));
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.getOccupiedSlots = async (req, res) => {
+  try {
+    const { date } = req.query;
+    if (!date) {
+      return res.status(400).json({ message: "Date parameter required" });
+    }
+
+    // Validar formato da data
+    const dateObj = new Date(date + "T00:00:00");
+    if (Number.isNaN(dateObj.getTime())) {
+      return res.status(400).json({ message: "Invalid date format" });
+    }
+
+    // Calcular início e fim do dia
+    const startOfDay = new Date(dateObj);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(dateObj);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    // Buscar agendamentos do dia que não estão cancelados
+    const { data: appointments, error } = await supabase
+      .from("appointments")
+      .select(`
+        scheduled_at,
+        services (
+          duration_minutes
+        )
+      `)
+      .gte("scheduled_at", startOfDay.toISOString())
+      .lte("scheduled_at", endOfDay.toISOString())
+      .neq("status", "cancelled");
+
+    if (error) throw error;
+
+    // Extrair horários ocupados (formato HH:MM)
+    // Um horário está ocupado se um serviço está em andamento naquele momento
+    const occupiedSlots = new Set();
+    appointments.forEach((appt) => {
+      const scheduledDate = new Date(appt.scheduled_at);
+      const duration = appt.services?.duration_minutes || 30;
+      const startMinutes = scheduledDate.getHours() * 60 + scheduledDate.getMinutes();
+      const endMinutes = startMinutes + duration;
+      
+      // Bloquear todos os slots de 30 em 30 minutos que estão durante a execução do serviço
+      // Incluindo o horário de início, mas não o horário de término (pois o serviço termina antes)
+      for (let min = startMinutes; min < endMinutes; min += 30) {
+        const h = Math.floor(min / 60);
+        const m = min % 60;
+        const slot = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+        occupiedSlots.add(slot);
+      }
+    });
+
+    return res.json({ occupiedSlots: Array.from(occupiedSlots).sort() });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Server error" });
