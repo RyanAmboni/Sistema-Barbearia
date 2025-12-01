@@ -127,8 +127,13 @@ function AppointmentPage() {
     }
 
     try {
-      const scheduledAt = new Date(`${date}T${time}:00`).toISOString();
-      await api.post('/api/appointments', { serviceId: serviceDetails.id, scheduledAt });
+      // Envia o horário exatamente como selecionado (sem ajuste automático de fuso)
+      const scheduledAt = `${date}T${time}:00Z`;
+
+      await api.post('/api/appointments', {
+        serviceId: serviceDetails.id,
+        scheduledAt,
+      });
       toast.success(`Agendamento de ${serviceDetails.name} confirmado!`);
       // Recarregar horários ocupados para atualizar a lista
       if (date) {
