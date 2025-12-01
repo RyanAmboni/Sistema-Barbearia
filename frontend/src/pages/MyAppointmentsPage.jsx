@@ -60,7 +60,7 @@ function MyAppointmentsPage({ user, barbeiro, activeModule = "agenda" }) {
     : [
         {
           id: 1,
-          service: "Cabelo + Barba + Sobrancelha",
+          service: "Cabelo + Barba + Sombrancelha",
           date: "15/10/2025",
           time: "18:30",
           status: "confirmed",

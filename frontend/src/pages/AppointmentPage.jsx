@@ -6,10 +6,10 @@ const staticServices = [
   { id: 1, name: 'Cabelo', price: 40 },
   { id: 2, name: 'Barba', price: 20 },
   { id: 3, name: 'Cabelo + Barba', price: 55 },
-  { id: 4, name: 'Sobrancelha', price: 15 },
-  { id: 5, name: 'Cabelo + Sobrancelha', price: 50 },
-  { id: 6, name: 'Barba + Sobrancelha', price: 30 },
-  { id: 7, name: 'Barba + Sobrancelha + Cabelo', price: 65 },
+  { id: 4, name: 'Sombrancelha', price: 15 },
+  { id: 5, name: 'Cabelo + Sombrancelha', price: 50 },
+  { id: 6, name: 'Barba + Sombrancelha', price: 30 },
+  { id: 7, name: 'Barba + Sombrancelha + Cabelo', price: 65 },
 ];
 
 const generateTimeSlots = (selectedDate) => {

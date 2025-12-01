@@ -197,6 +197,175 @@ h3 {
   margin-top: 20px;
 }
 
+/* --- PÁGINA DE SERVIÇOS --- */
+.page-title {
+  text-align: center;
+  font-size: 3rem;
+  margin: 2rem 0;
+  color: var(--highlight);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  position: relative;
+  padding-bottom: 1rem;
+}
+
+.page-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 4px;
+  background: var(--highlight);
+  border-radius: 2px;
+}
+
+.services-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.service-card {
+  background: var(--medium-bg);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.service-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+}
+
+.service-card h2 {
+  font-size: 1.5rem;
+  padding: 1.5rem 0.5rem 0.5rem;
+  margin: 0;
+  color: var(--light-text);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  hyphens: auto;
+  line-height: 1.2;
+  min-height: 3.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.service-card .image-placeholder {
+  width: 100%;
+  height: 220px;
+  overflow: hidden;
+  position: relative;
+}
+
+.service-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.service-card:hover img {
+  transform: scale(1.05);
+}
+
+.service-price {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--highlight);
+  text-align: center;
+  padding: 1rem;
+  margin: 0.5rem 0;
+  font-family: 'Staatliches', sans-serif;
+  letter-spacing: 1px;
+}
+
+.service-card .btn {
+  margin: 1rem auto;
+  width: 80%;
+  padding: 0.8rem;
+  font-size: 1rem;
+  letter-spacing: 1.5px;
+  transition: all 0.3s ease;
+  border-radius: 6px;
+}
+
+.service-card .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Estilos para mensagem de carregamento */
+.loading-spinner {
+  display: inline-block;
+  width: 50px;
+  height: 50px;
+  border: 5px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: var(--highlight);
+  animation: spin 1s ease-in-out infinite;
+  -webkit-animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@-webkit-keyframes spin {
+  to { -webkit-transform: rotate(360deg); }
+}
+
+/* Responsividade */
+@media (max-width: 1024px) {
+  .services-container {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 2.5rem;
+  }
+  
+  .services-container {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-title {
+    font-size: 2rem;
+    margin: 1.5rem 0;
+  }
+  
+  .services-container {
+    grid-template-columns: 1fr;
+    max-width: 400px;
+    margin: 0 auto;
+  }
+  
+  .service-card .btn {
+    width: 90%;
+  }
+}
+
 /* --- LAYOUTS DE PÁGINA E TÍTULOS --- */
 .main-content {
   flex: 1;
@@ -283,7 +452,7 @@ h3 {
 }
 .login-image-placeholder {
   flex: 1;
-  background-color: var(--light-text);
+  background-color: #FFFFFF;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -291,7 +460,7 @@ h3 {
 .login-image-placeholder img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 .login-form-container {
   flex: 1;
@@ -387,18 +556,20 @@ h3 {
 
 /* --- PÁGINA DE SERVIÇOS --- */
 .services-container {
-  display: flex;
-  justify-content: center;
-  align-items: stretch;
-  flex-wrap: wrap;
-  gap: 30px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  justify-items: center;
+  gap: 25px;
   width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
   /* ⬅️ CORREÇÃO: Força o conteúdo a alinhar ao topo se a página for longa */
   align-self: flex-start;
 }
 .service-card {
   background-color: var(--medium-bg);
-  padding: 30px;
+  padding: 25px;
   border-radius: 10px;
   width: 100%;
   max-width: 340px;
@@ -407,11 +578,18 @@ h3 {
   flex-direction: column;
   border: 1px solid #333;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.service-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
 }
 .service-card h2 {
   font-size: 2.5em;
   margin-bottom: 20px;
   color: var(--light-text);
+  line-height: 1.2;
+  word-wrap: break-word;
 }
 .service-card .image-placeholder {
   width: 100%;
@@ -427,6 +605,63 @@ h3 {
 }
 .service-card .btn {
   margin-top: 20px;
+}
+
+/* Responsividade para a página de serviços */
+@media (max-width: 1200px) {
+  .services-container {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .services-container {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
+    padding: 0 15px;
+  }
+  .service-card {
+    padding: 20px;
+    max-width: 100%;
+  }
+  .service-card h2 {
+    font-size: 2em;
+    margin-bottom: 15px;
+  }
+  .service-card .image-placeholder {
+    height: 200px;
+  }
+  .page-title {
+    font-size: 3.5em;
+    margin-bottom: 40px;
+  }
+}
+
+@media (max-width: 480px) {
+  .services-container {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 0 10px;
+  }
+  .service-card {
+    padding: 15px;
+  }
+  .service-card h2 {
+    font-size: 1.8em;
+    margin-bottom: 15px;
+  }
+  .service-card .image-placeholder {
+    height: 180px;
+  }
+  .page-title {
+    font-size: 2.5em;
+    margin-bottom: 30px;
+  }
+  .service-card .btn {
+    padding: 12px 20px;
+    font-size: 1em;
+  }
 }
 
 /* --- PÁGINA DE AGENDAMENTO --- */
