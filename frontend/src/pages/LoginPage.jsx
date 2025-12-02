@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { toast } from "react-toastify";
-import { api } from "../api";
+import { api, setToken } from "../api";
 
 const EyeIcon = () => (
   <svg
@@ -40,7 +40,7 @@ function LoginPage({ onLogin, onNavigate }) {
     try {
       const data = await api.post("/api/auth/login", { email, password, role });
       if (data.token) {
-        localStorage.setItem("token", data.token);
+        setToken(data.token);
         toast.success("Login realizado");
         onLogin(data.user || {});
       }

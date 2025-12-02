@@ -2,13 +2,23 @@ const envBase = import.meta.env.VITE_API_URL;
 const fallbackBase = import.meta.env.DEV ? '' : (typeof window !== 'undefined' ? window.location.origin : '');
 const API_BASE = (envBase || fallbackBase || '').replace(/\/$/, '');
 
+let sessionToken = null;
+
+export const setToken = (token) => {
+  sessionToken = token || null;
+};
+
+export const clearToken = () => {
+  sessionToken = null;
+};
+
 const buildUrl = (path = '') => {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   return API_BASE ? `${API_BASE}${normalizedPath}` : normalizedPath;
 };
 
 async function request(path, options = {}) {
-  const token = localStorage.getItem('token');
+  const token = sessionToken;
   const headers = Object.assign({}, options.headers || {});
   if (token) headers['Authorization'] = `Bearer ${token}`;
   if (!headers['Content-Type'] && !(options.body instanceof FormData)) {

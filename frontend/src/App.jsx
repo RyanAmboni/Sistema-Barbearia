@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -12,7 +12,7 @@ import AppointmentPage from "./pages/AppointmentPage";
 import MyAppointmentsPage from "./pages/MyAppointmentsPage";
 import ProfilePage from "./pages/ProfilePage";
 import "./index.css";
-import { api } from "./api";
+import { clearToken } from "./api";
 
 function App() {
   const [appState, setAppState] = useState({
@@ -45,7 +45,7 @@ function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    clearToken();
     setAppState({ isLoggedIn: false, currentPage: "login", user: null });
   };
 
@@ -55,38 +55,6 @@ function App() {
       user: { ...prev.user, ...updatedUser },
     }));
   };
-
-  // Restaurar sessão se token existir
-  useEffect(() => {
-    let cancelled = false;
-
-    const restoreSession = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      try {
-        const profile = await api.get("/api/users/me");
-        if (cancelled) return;
-
-        setAppState((prev) => ({
-          ...prev,
-          isLoggedIn: true,
-          user: profile,
-          currentPage:
-            profile?.role === "barbeiro" ? "horariosBarbeiro" : "inicio",
-        }));
-      } catch (err) {
-        console.error("Erro ao restaurar sessão:", err);
-        localStorage.removeItem("token");
-      }
-    };
-
-    restoreSession();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const renderContent = () => {
     const { isLoggedIn, currentPage, user } = appState;
