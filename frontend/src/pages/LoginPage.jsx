@@ -35,6 +35,26 @@ function LoginPage({ onLogin, onNavigate }) {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("cliente");
 
+  const getLoginErrorMessage = (err) => {
+    if (!err) return "Não foi possível fazer login agora.";
+    if (err.status === 404) {
+      return "Usuário não encontrado. Confira o e-mail ou crie uma conta.";
+    }
+    if (err.status === 401) {
+      return "Senha incorreta. Tente novamente ou recupere a senha.";
+    }
+    if (err.status === 429) {
+      return "Muitas tentativas. Aguarde um instante e tente novamente.";
+    }
+    if (err.status >= 500) {
+      return "Estamos com instabilidade. Tente de novo em alguns minutos.";
+    }
+    if (typeof err.message === "string" && err.message.toLowerCase().includes("network")) {
+      return "Sem conexão. Verifique sua internet e tente novamente.";
+    }
+    return err.message || "Não foi possível fazer login agora.";
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -45,7 +65,8 @@ function LoginPage({ onLogin, onNavigate }) {
         onLogin(data.user || {});
       }
     } catch (err) {
-      toast.error(err.message || "Erro ao fazer login");
+      console.error("Erro no login:", err);
+      toast.error(getLoginErrorMessage(err));
     }
   };
 

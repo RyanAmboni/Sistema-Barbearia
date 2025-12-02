@@ -270,9 +270,10 @@ exports.updateStatus = async (req, res) => {
       .from("appointments")
       .select("id, status")
       .eq("id", id)
-      .single();
+      .maybeSingle();
 
-    if (fetchError || !appointment) {
+    if (fetchError) throw fetchError;
+    if (!appointment) {
       return res.status(404).json({ message: "Appointment not found" });
     }
 
@@ -294,7 +295,7 @@ exports.updateStatus = async (req, res) => {
       .update({ status, barbeiro_id: req.userId })
       .eq("id", id)
       .select("id")
-      .single();
+      .maybeSingle();
 
     if (updateError) {
       // Normalizar erros de constraint do banco para mensagens compreensíveis
@@ -311,6 +312,9 @@ exports.updateStatus = async (req, res) => {
       }
 
       throw updateError;
+    }
+    if (!updated) {
+      return res.status(404).json({ message: "Appointment not found during update" });
     }
 
     const { data: withRelations, error: fetchRelationsError } = await supabase
