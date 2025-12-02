@@ -82,3 +82,67 @@ exports.getKpis = async (req, res) => {
     return res.status(500).json({ message: 'Server error' });
   }
 };
+
+/**
+ * KPIs simples: totais gerais de agendamentos e receita.
+ */
+exports.getSummary = async (req, res) => {
+  try {
+    // Garantir que apenas barbeiros enxerguem os KPIs
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', req.userId)
+      .single();
+
+    if (userError || !user || user.role !== 'barbeiro') {
+      return res.status(403).json({ message: 'Not allowed to view KPIs' });
+    }
+
+    // Total de agendamentos marcados (estados ativos)
+    const validStatuses = ['scheduled', 'accepted', 'completed'];
+    const { count: totalMarcados, error: countMarkedError } = await supabase
+      .from('appointments')
+      .select('*', { count: 'exact', head: true })
+      .in('status', validStatuses);
+
+    if (countMarkedError) throw countMarkedError;
+
+    // Total de agendamentos concluídos
+    const { count: totalConcluidos, error: countCompletedError } = await supabase
+      .from('appointments')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'completed');
+
+    if (countCompletedError) throw countCompletedError;
+
+    // Receita total = soma dos preços dos serviços concluídos
+    const { data: completedAppointments, error: revenueError } = await supabase
+      .from('appointments')
+      .select(`
+        services (
+          price
+        )
+      `)
+      .eq('status', 'completed');
+
+    if (revenueError) throw revenueError;
+
+    const receitaTotal = (completedAppointments || []).reduce((total, appointment) => {
+      const price = appointment.services?.price || 0;
+      return total + Number(price);
+    }, 0);
+
+    const ticketMedio = (totalConcluidos || 0) > 0 ? receitaTotal / totalConcluidos : 0;
+
+    return res.json({
+      totalMarcados: totalMarcados || 0,
+      totalConcluidos: totalConcluidos || 0,
+      receitaTotal: Number(receitaTotal.toFixed(2)),
+      ticketMedio: Number(ticketMedio.toFixed(2)),
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};

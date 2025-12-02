@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import Agenda from "../components/Agenda";
-import KPIDashboard from "../components/KPIDashboard"; // ⬅️ NOVO: Importar Dashboard de KPI
+import KPIDashboard from "../components/KPIDashboard"; // ��.��? NOVO: Importar Dashboard de KPI
+import api from "../api";
 
 // Componente para o toast de confirmação
 const ConfirmToast = ({ closeToast, onConfirm }) => (
@@ -10,8 +11,8 @@ const ConfirmToast = ({ closeToast, onConfirm }) => (
     <div className="confirm-toast-buttons">
       <button
         className="confirm-toast-btn confirm-toast-btn-yes"
-        onClick={() => {
-          onConfirm();
+        onClick={async () => {
+          await onConfirm();
           closeToast();
         }}
       >
@@ -27,67 +28,78 @@ const ConfirmToast = ({ closeToast, onConfirm }) => (
   </div>
 );
 
-function AppointmentCard({ service, date, time, status, onCancel }) {
-  return (
-    <div className={`appointment-card ${status}`}>
-      <div className="card-content">
-        <h3>{service}</h3>
-        <p>
-          <strong>Data:</strong> {date}
-        </p>
-        <p>
-          <strong>Horário:</strong> {time}
-        </p>
-      </div>
-      <div className="card-footer">
-        <span className="status-badge">
-          {status === "confirmed" ? "Confirmado" : "Finalizado"}
-        </span>
-        {status === "confirmed" && (
-          <button className="btn-cancel" onClick={onCancel}>
-            Cancelar
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function MyAppointmentsPage({ user, barbeiro, activeModule = "agenda" }) {
-  // Se for barbeiro, mostrar todos os horários, caso contrário, apenas do cliente
-  const initialAppointments = barbeiro
-    ? []
-    : [
-        {
-          id: 1,
-          service: "Cabelo + Barba + Sombrancelha",
-          date: "15/10/2025",
-          time: "18:30",
-          status: "accepted",
-        },
-        {
-          id: 2,
-          service: "Corte de Cabelo",
-          date: "20/09/2025",
-          time: "16:00",
-          status: "completed",
-        },
-        {
-          id: 3,
-          service: "Corte de Barba",
-          date: "01/09/2025",
-          time: "11:00",
-          status: "completed",
-        },
-      ];
-  const [appointments, setAppointments] = useState(initialAppointments);
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (barbeiro) return;
+    loadAppointments();
+  }, [barbeiro]);
+
+  const loadAppointments = async () => {
+    try {
+      setLoading(true);
+      const data = await api.get("/api/appointments");
+      setAppointments(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Erro ao carregar agendamentos:", error);
+      toast.error("Erro ao carregar seus agendamentos.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    const map = {
+      scheduled: "Aguardando",
+      accepted: "Confirmado",
+      completed: "Finalizado",
+      rejected: "Recusado",
+      cancelled: "Cancelado",
+    };
+    return map[status] || status;
+  };
+
+  const formatDate = (value) => {
+    if (!value) return "";
+    const d = new Date(value);
+    if (!Number.isNaN(d.getTime())) {
+      return d.toLocaleDateString("pt-BR");
+    }
+    return typeof value === "string" ? value : "";
+  };
+
+  const formatTime = (value) => {
+    if (!value) return "";
+    const d = new Date(value);
+    if (!Number.isNaN(d.getTime())) {
+      return d.toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+    return typeof value === "string" ? value : "";
+  };
+
+  const canCancel = (status) => ["scheduled", "accepted"].includes(status);
 
   const handleCancel = (appointmentId) => {
-    const confirmCancellation = () => {
-      setAppointments((currentAppointments) =>
-        currentAppointments.filter((appt) => appt.id !== appointmentId)
-      );
-      toast.success("Agendamento cancelado.");
+    const confirmCancellation = async () => {
+      try {
+        await api.del(`/api/appointments/${appointmentId}`);
+        setAppointments((currentAppointments) =>
+          currentAppointments.filter((appt) => appt.id !== appointmentId)
+        );
+        toast.success("Agendamento cancelado.");
+      } catch (error) {
+        console.error("Erro ao cancelar agendamento:", error);
+        toast.error(
+          error?.data?.message ||
+            error?.message ||
+            "Não foi possível cancelar o agendamento."
+        );
+      }
     };
 
     toast(<ConfirmToast onConfirm={confirmCancellation} />, {
@@ -99,7 +111,12 @@ function MyAppointmentsPage({ user, barbeiro, activeModule = "agenda" }) {
     });
   };
 
-  // Se for barbeiro, mostrar interface modular
+  const upcomingCount = appointments.filter((a) =>
+    ["accepted", "scheduled"].includes(a.status)
+  ).length;
+  const completedCount = appointments.filter((a) => a.status === "completed")
+    .length;
+
   if (barbeiro) {
     return (
       <div className="page-content barbeiro-page">
@@ -107,55 +124,69 @@ function MyAppointmentsPage({ user, barbeiro, activeModule = "agenda" }) {
         <div className="barbeiro-modules">
           <div className="module-content">
             {activeModule === "agenda" && <Agenda />}
-            {activeModule === "kpis" && <KPIDashboard />} {/* ⬅️ NOVO: Renderiza o módulo de KPIs */}
-            {/* Adicionar mais módulos aqui no futuro */}
+            {activeModule === "kpis" && <KPIDashboard />}
           </div>
         </div>
       </div>
     );
   }
 
-  // Se for cliente, manter comportamento original
   return (
     <div className="page-content">
       <h1 className="page-title">Meus Horários</h1>
-      <div className="appointments-list">
-        {appointments.filter((a) => a.status === "accepted").length === 0 &&
-          appointments.filter((a) => a.status === "completed").length > 0 && (
-            <p className="info-message">
-              Você não possui agendamentos futuros.
-            </p>
+      {loading ? (
+        <p className="info-message">Carregando seus agendamentos...</p>
+      ) : (
+        <div className="appointments-list">
+          {upcomingCount === 0 && completedCount > 0 && (
+            <p className="info-message">Você não possui agendamentos futuros.</p>
           )}
-        {appointments.length === 0 && (
-          <p className="info-message">Você ainda não fez nenhum agendamento.</p>
-        )}
-        {appointments.map((appt) => (
-          <div key={appt.id} className={`appointment-card ${appt.status}`}>
-            <div className="card-content">
-              <h3>{appt.service}</h3>
-              <p>
-                <strong>Data:</strong> {appt.date}
-              </p>
-              <p>
-                <strong>Horário:</strong> {appt.time}
-              </p>
-            </div>
-            <div className="card-footer">
-              <span className="status-badge">
-                {appt.status === "accepted" ? "Confirmado" : "Finalizado"}
-              </span>
-              {appt.status === "accepted" && (
-                <button
-                  className="btn-cancel"
-                  onClick={() => handleCancel(appt.id)}
-                >
-                  Cancelar
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+          {appointments.length === 0 && (
+            <p className="info-message">Você ainda não fez nenhum agendamento.</p>
+          )}
+          {appointments.map((appt) => {
+            const isFinished = [
+              "completed",
+              "cancelled",
+              "rejected",
+            ].includes(appt.status);
+            const serviceName =
+              typeof appt.service === "string"
+                ? appt.service
+                : appt.service?.name || "Serviço";
+            const dateValue = appt.scheduledAt || appt.date;
+            const timeValue = appt.scheduledAt || appt.time;
+
+            return (
+              <div
+                key={appt.id}
+                className={`appointment-card ${isFinished ? "finished" : ""}`}
+              >
+                <div className="card-content">
+                  <h3>{serviceName}</h3>
+                  <p>
+                    <strong>Data:</strong> {formatDate(dateValue)}
+                  </p>
+                  <p>
+                    <strong>Horário:</strong> {formatTime(timeValue)}
+                  </p>
+                </div>
+                <div className="card-footer">
+                  <span className="status-badge">{getStatusLabel(appt.status)}</span>
+                  {canCancel(appt.status) && (
+                    <button
+                      className="btn-cancel"
+                      onClick={() => handleCancel(appt.id)}
+                    >
+                      Cancelar
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
