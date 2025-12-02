@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { toast } from 'react-toastify';
 import { api } from '../api';
 
@@ -142,9 +142,6 @@ function ProfilePage({ user, onLogout, onProfileUpdate }) {
           <div className="profile-menu">
             <button className="btn-profile-action" onClick={() => setIsEditing(true)}>Editar Perfil</button>
             <button className="btn-profile-action" onClick={() => setIsChangingPassword(true)}>Alterar Senha</button>
-            <div className="appointment-summary">
-              <p><strong>Próximo Agendamento:</strong> 15/10/2025 - 18:30 (Cabelo+Barba)</p>
-            </div>
             <button className="btn btn-logout" onClick={onLogout}>Sair da Conta</button>
           </div>
         )}

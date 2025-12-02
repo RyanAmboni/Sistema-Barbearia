@@ -915,14 +915,6 @@ h3 {
   border-color: var(--highlight);
   color: var(--highlight);
 }
-.appointment-summary {
-  margin: 30px 0;
-  padding: 20px;
-  background-color: var(--dark-bg);
-  border-radius: 8px;
-  text-align: center;
-  color: var(--light-text);
-}
 .form-actions-profile {
   display: flex;
   gap: 15px;
