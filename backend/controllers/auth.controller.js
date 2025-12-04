@@ -67,15 +67,20 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Criar perfil na tabela users
+    // Criar/atualizar perfil na tabela users.
+    // Usamos upsert porque um trigger pode ter criado automaticamente o registro
+    // assim que o usuÇ­rio foi criado no auth, evitando conflito de chave duplicada.
     const { data: profileData, error: profileError } = await supabase
       .from("users")
-      .insert({
-        id: authData.user.id,
-        name,
-        email,
-        role: userRole,
-      })
+      .upsert(
+        {
+          id: authData.user.id,
+          name,
+          email,
+          role: userRole,
+        },
+        { onConflict: "id" }
+      )
       .select()
       .single();
 
@@ -158,15 +163,18 @@ exports.createFirstBarbeiro = async (req, res) => {
       return res.status(500).json({ message: "Erro ao criar usuário" });
     }
 
-    // Criar perfil na tabela users com role barbeiro
+    // Criar/atualizar perfil na tabela users com role barbeiro (evita conflito com trigger)
     const { data: profileData, error: profileError } = await supabase
       .from("users")
-      .insert({
-        id: authData.user.id,
-        name,
-        email,
-        role: "barbeiro",
-      })
+      .upsert(
+        {
+          id: authData.user.id,
+          name,
+          email,
+          role: "barbeiro",
+        },
+        { onConflict: "id" }
+      )
       .select()
       .single();
 
