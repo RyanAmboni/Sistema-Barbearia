@@ -1,4 +1,5 @@
 const supabase = require('../config/supabase');
+const supabaseAuth = supabase.supabaseAuth || supabase;
 
 const authMiddleware = async (req, res, next) => {
   console.log(`🔐 Auth middleware: ${req.method} ${req.path}`);
@@ -15,8 +16,8 @@ const authMiddleware = async (req, res, next) => {
   if (!/^Bearer$/i.test(scheme)) return res.status(401).json({ message: 'Malformed token' });
 
   try {
-    // Verificar token com Supabase
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    // Verificar token com Supabase usando o client dedicado a auth
+    const { data: { user }, error } = await supabaseAuth.auth.getUser(token);
     
     if (error || !user) {
       return res.status(401).json({ message: 'Invalid token' });

@@ -5,7 +5,7 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY; // Use service role k
 
 if (!supabaseUrl || !supabaseKey) {
   const error = new Error('Missing Supabase environment variables: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required');
-  console.error('❌ Supabase configuration error:', {
+  console.error('Supabase configuration error:', {
     hasUrl: !!supabaseUrl,
     hasKey: !!supabaseKey,
     urlPreview: supabaseUrl ? `${supabaseUrl.substring(0, 20)}...` : 'missing',
@@ -14,12 +14,20 @@ if (!supabaseUrl || !supabaseKey) {
   throw error;
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey, {
+const clientOptions = {
   auth: {
     autoRefreshToken: false,
     persistSession: false
   }
-});
+};
 
-module.exports = supabase;
+// Client dedicado para queries (sempre usando a service role)
+const supabaseAdmin = createClient(supabaseUrl, supabaseKey, clientOptions);
+// Client separado para operacoes de autenticacao para nao contaminar o contexto do admin
+const supabaseAuth = createClient(supabaseUrl, supabaseKey, clientOptions);
 
+// Manter compatibilidade com imports existentes (default retorna o admin)
+supabaseAdmin.supabaseAdmin = supabaseAdmin;
+supabaseAdmin.supabaseAuth = supabaseAuth;
+
+module.exports = supabaseAdmin;

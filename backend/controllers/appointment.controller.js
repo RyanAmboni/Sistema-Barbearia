@@ -314,7 +314,11 @@ exports.updateStatus = async (req, res) => {
       throw updateError;
     }
     if (!updated) {
-      return res.status(404).json({ message: "Appointment not found during update" });
+      console.warn("Appointment update returned no data, refetching", {
+        id,
+        status,
+        userId: req.userId,
+      });
     }
 
     const { data: withRelations, error: fetchRelationsError } = await supabase

@@ -1,4 +1,5 @@
-const supabase = require("../config/supabase");
+const supabaseAdmin = require("../config/supabase");
+const supabaseAuth = supabaseAdmin.supabaseAuth || supabaseAdmin;
 const db = require("../db");
 
 const publicUser = (row) => ({
@@ -32,7 +33,7 @@ exports.register = async (req, res) => {
     const userRole = "cliente";
     
     // Verificar se email já existe
-    const { data: existingUser } = await supabase
+    const { data: existingUser } = await supabaseAdmin
       .from("users")
       .select("id")
       .eq("email", email)
@@ -44,7 +45,7 @@ exports.register = async (req, res) => {
     }
     
     // Criar usuário no Supabase Auth usando admin API
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    const { data: authData, error: authError } = await supabaseAuth.auth.admin.createUser({
       email,
       password,
       email_confirm: true, // Auto-confirmar email
@@ -70,7 +71,7 @@ exports.register = async (req, res) => {
     // Criar/atualizar perfil na tabela users.
     // Usamos upsert porque um trigger pode ter criado automaticamente o registro
     // assim que o usuÇ­rio foi criado no auth, evitando conflito de chave duplicada.
-    const { data: profileData, error: profileError } = await supabase
+    const { data: profileData, error: profileError } = await supabaseAdmin
       .from("users")
       .upsert(
         {
@@ -86,7 +87,7 @@ exports.register = async (req, res) => {
 
     if (profileError) {
       // Se falhar ao criar perfil, tentar deletar o usuário de auth
-      await supabase.auth.admin.deleteUser(authData.user.id);
+      await supabaseAuth.auth.admin.deleteUser(authData.user.id);
       console.error("Profile error:", profileError);
       console.error("Profile error details:", JSON.stringify(profileError, null, 2));
       return res.status(500).json({ 
@@ -115,7 +116,7 @@ exports.createFirstBarbeiro = async (req, res) => {
     }
 
     // Verificar se já existe algum barbeiro no sistema
-    const { data: existingBarbeiros, error: checkError } = await supabase
+    const { data: existingBarbeiros, error: checkError } = await supabaseAdmin
       .from("users")
       .select("id")
       .eq("role", "barbeiro")
@@ -133,7 +134,7 @@ exports.createFirstBarbeiro = async (req, res) => {
     }
 
     // Verificar se email já existe
-    const { data: existingUser } = await supabase
+    const { data: existingUser } = await supabaseAdmin
       .from("users")
       .select("id")
       .eq("email", email)
@@ -145,7 +146,7 @@ exports.createFirstBarbeiro = async (req, res) => {
     }
     
     // Criar usuário no Supabase Auth usando admin API
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    const { data: authData, error: authError } = await supabaseAuth.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
@@ -164,7 +165,7 @@ exports.createFirstBarbeiro = async (req, res) => {
     }
 
     // Criar/atualizar perfil na tabela users com role barbeiro (evita conflito com trigger)
-    const { data: profileData, error: profileError } = await supabase
+    const { data: profileData, error: profileError } = await supabaseAdmin
       .from("users")
       .upsert(
         {
@@ -180,7 +181,7 @@ exports.createFirstBarbeiro = async (req, res) => {
 
     if (profileError) {
       // Se falhar ao criar perfil, tentar deletar o usuário de auth
-      await supabase.auth.admin.deleteUser(authData.user.id);
+      await supabaseAuth.auth.admin.deleteUser(authData.user.id);
       console.error("Profile error:", profileError);
       return res.status(500).json({ message: "Erro ao criar perfil do usuário" });
     }
@@ -203,7 +204,7 @@ exports.login = async (req, res) => {
     }
 
     // Autenticar com Supabase
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+    const { data: authData, error: authError } = await supabaseAuth.auth.signInWithPassword({
       email,
       password,
     });
@@ -213,7 +214,7 @@ exports.login = async (req, res) => {
     }
 
     // Buscar perfil do usuário
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from("users")
       .select("id, name, email, role")
       .eq("id", authData.user.id)
